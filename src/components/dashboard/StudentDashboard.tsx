@@ -87,12 +87,16 @@ export default function StudentDashboard({ onLogout }: StudentDashboardProps) {
             <Button 
               variant="outline" 
               onClick={() => navigate('/settings')} 
-              className="text-white border-white hover:bg-white hover:text-primary"
+              className="text-primary-foreground border-primary-foreground/20 bg-white/10 hover:bg-white hover:text-primary backdrop-blur-sm"
             >
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </Button>
-            <Button variant="outline" onClick={onLogout} className="text-white border-white hover:bg-white hover:text-primary">
+            <Button 
+              variant="outline" 
+              onClick={onLogout} 
+              className="text-primary-foreground border-primary-foreground/20 bg-white/10 hover:bg-white hover:text-primary backdrop-blur-sm"
+            >
               Logout
             </Button>
           </div>
