@@ -22,26 +22,40 @@ interface StudentDashboardProps {
 }
 
 export default function StudentDashboard({ onLogout }: StudentDashboardProps) {
+  const { profile } = useAuth();
+  const { stats, markAttendance, getTodaySchedule } = useAttendance();
+  const { getRecommendedActivities } = useActivities();
+  
   const [showScanner, setShowScanner] = useState(false);
   const [attendanceStatus, setAttendanceStatus] = useState<'none' | 'scanning' | 'success' | 'error'>('none');
+  const [todayClasses, setTodayClasses] = useState<any[]>([]);
+  const [recommendedActivities, setRecommendedActivities] = useState<any[]>([]);
 
-  const mockData = {
-    todayClasses: [
-      { id: 1, name: 'Computer Science 101', time: '09:00 AM', status: 'attended', location: 'Room 201' },
-      { id: 2, name: 'Mathematics', time: '11:00 AM', status: 'pending', location: 'Room 105' },
-      { id: 3, name: 'Physics', time: '02:00 PM', status: 'upcoming', location: 'Lab 301' },
-    ],
-    weeklyAttendance: 85,
-    activities: [
-      { id: 1, title: 'Study Group - Algorithms', time: 'Free Period 1', type: 'Academic' },
-      { id: 2, title: 'Basketball Practice', time: 'Free Period 2', type: 'Sports' },
-    ]
-  };
+  useEffect(() => {
+    const fetchTodayData = async () => {
+      const schedule = await getTodaySchedule();
+      setTodayClasses(schedule);
+      setRecommendedActivities(getRecommendedActivities());
+    };
+    
+    fetchTodayData();
+  }, []);
 
-  const handleScanSuccess = (result: string) => {
-    setAttendanceStatus('success');
-    setShowScanner(false);
-    setTimeout(() => setAttendanceStatus('none'), 3000);
+  const handleScanSuccess = async (result: string) => {
+    try {
+      await markAttendance(result);
+      setAttendanceStatus('success');
+      setShowScanner(false);
+      setTimeout(() => setAttendanceStatus('none'), 3000);
+      
+      // Refresh today's schedule
+      const schedule = await getTodaySchedule();
+      setTodayClasses(schedule);
+    } catch (error) {
+      setAttendanceStatus('error');
+      setShowScanner(false);
+      setTimeout(() => setAttendanceStatus('none'), 3000);
+    }
   };
 
   const handleScanError = () => {
