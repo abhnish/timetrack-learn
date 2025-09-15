@@ -30,8 +30,8 @@ export const useAttendance = () => {
   const { user, profile } = useAuth()
   const { toast } = useToast()
 
-  // Mark attendance using QR code
-  const markAttendance = async (qrData: string, location?: { lat: number, lng: number }) => {
+  // Mark attendance using QR code with fraud detection
+  const markAttendance = async (qrData: string, location?: { lat: number, lng: number }, deviceInfo?: any) => {
     if (!user || profile?.role !== 'student') {
       throw new Error('Only students can mark attendance')
     }
@@ -58,6 +58,13 @@ export const useAttendance = () => {
         throw new Error('Invalid or expired QR code')
       }
 
+      // Advanced fraud detection checks
+      const fraudCheckResult = await performFraudDetection(session, location, deviceInfo);
+      
+      if (!fraudCheckResult.isValid) {
+        throw new Error(fraudCheckResult.reason);
+      }
+
       // Check if already marked
       const { data: existingRecord } = await supabase
         .from('attendance')
@@ -70,7 +77,7 @@ export const useAttendance = () => {
         throw new Error('Attendance already marked for this session')
       }
 
-      // Mark attendance
+      // Mark attendance with security data
       const { error } = await supabase
         .from('attendance')
         .insert({
@@ -86,6 +93,14 @@ export const useAttendance = () => {
 
       if (error) throw error
 
+      // Log security event
+      await logSecurityEvent('attendance_marked', {
+        session_id: session.id,
+        location,
+        device_info: deviceInfo,
+        fraud_score: fraudCheckResult.fraudScore
+      });
+
       await fetchAttendanceData()
       
       toast({
@@ -95,6 +110,13 @@ export const useAttendance = () => {
 
       return true
     } catch (error: any) {
+      // Log security event for failed attempts
+      await logSecurityEvent('attendance_failed', {
+        error: error.message,
+        location,
+        device_info: deviceInfo
+      });
+
       toast({
         title: "Attendance Failed",
         description: error.message,
@@ -104,7 +126,165 @@ export const useAttendance = () => {
     }
   }
 
-  // Fetch attendance data
+  // Advanced fraud detection system
+  const performFraudDetection = async (session: any, location?: { lat: number, lng: number }, deviceInfo?: any) => {
+    let fraudScore = 0;
+    const reasons = [];
+
+    try {
+      // 1. Time-based validation
+      const now = new Date();
+      const sessionStart = new Date(session.start_time);
+      const sessionEnd = new Date(session.end_time);
+      
+      if (now < sessionStart || now > sessionEnd) {
+        fraudScore += 50;
+        reasons.push('Attendance marked outside session time window');
+      }
+
+      // 2. Location-based validation (geofencing)
+      if (location && session.location) {
+        // Call fraud detection edge function for complex analysis
+        const { data: fraudAnalysis } = await supabase.functions.invoke('fraud-detection', {
+          body: {
+            type: 'location_check',
+            session_id: session.id,
+            location,
+            device_info: deviceInfo,
+            user_id: user?.id
+          }
+        });
+
+        if (fraudAnalysis?.fraud_score) {
+          fraudScore += fraudAnalysis.fraud_score;
+          if (fraudAnalysis.reasons) {
+            reasons.push(...fraudAnalysis.reasons);
+          }
+        }
+      }
+
+      // 3. Device fingerprint analysis
+      if (deviceInfo) {
+        // Check for suspicious device characteristics
+        const deviceRisk = await analyzeDeviceRisk(deviceInfo);
+        fraudScore += deviceRisk.score;
+        if (deviceRisk.reasons) {
+          reasons.push(...deviceRisk.reasons);
+        }
+      }
+
+      // 4. Pattern analysis - check recent attendance behavior
+      const recentAttendance = await checkRecentAttendancePatterns();
+      fraudScore += recentAttendance.riskScore;
+      if (recentAttendance.reasons) {
+        reasons.push(...recentAttendance.reasons);
+      }
+
+      // Determine if attendance is valid based on fraud score
+      const isValid = fraudScore < 70; // Threshold for fraud detection
+
+      return {
+        isValid,
+        fraudScore,
+        reason: isValid ? 'Valid attendance' : reasons.join('; '),
+        details: reasons
+      };
+    } catch (error) {
+      console.error('Fraud detection error:', error);
+      // Fail open for now, but log the error
+      return {
+        isValid: true,
+        fraudScore: 0,
+        reason: 'Fraud detection unavailable'
+      };
+    }
+  };
+
+  // Analyze device risk factors
+  const analyzeDeviceRisk = async (deviceInfo: any) => {
+    let score = 0;
+    const reasons = [];
+
+    // Check for suspicious timing
+    if (deviceInfo.scanDuration < 1000) { // Less than 1 second scan
+      score += 20;
+      reasons.push('Unusually fast QR scan detected');
+    }
+
+    // Check for suspicious user agent patterns
+    if (deviceInfo.userAgent && (
+      deviceInfo.userAgent.includes('bot') ||
+      deviceInfo.userAgent.includes('crawler') ||
+      deviceInfo.userAgent.includes('spider')
+    )) {
+      score += 30;
+      reasons.push('Suspicious user agent detected');
+    }
+
+    // Check for offline status during scan
+    if (deviceInfo.onlineStatus === false) {
+      score += 15;
+      reasons.push('Device was offline during scan');
+    }
+
+    return { score, reasons };
+  };
+
+  // Check recent attendance patterns for anomalies
+  const checkRecentAttendancePatterns = async () => {
+    try {
+      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      
+      const { data: recentAttendance } = await supabase
+        .from('attendance')
+        .select('marked_at, location_lat, location_lng, session_id')
+        .eq('student_id', user?.id)
+        .gte('marked_at', oneWeekAgo.toISOString())
+        .order('marked_at', { ascending: false });
+
+      let riskScore = 0;
+      const reasons = [];
+
+      if (!recentAttendance || recentAttendance.length === 0) {
+        return { riskScore: 0, reasons: [] };
+      }
+
+      // Check for rapid succession of attendance marks
+      for (let i = 1; i < recentAttendance.length; i++) {
+        const current = new Date(recentAttendance[i-1].marked_at);
+        const previous = new Date(recentAttendance[i].marked_at);
+        const timeDiff = current.getTime() - previous.getTime();
+        
+        if (timeDiff < 300000) { // Less than 5 minutes apart
+          riskScore += 25;
+          reasons.push('Multiple rapid attendance marks detected');
+          break;
+        }
+      }
+
+      return { riskScore, reasons };
+    } catch (error) {
+      console.error('Pattern analysis error:', error);
+      return { riskScore: 0, reasons: [] };
+    }
+  };
+
+  // Log security events for monitoring
+  const logSecurityEvent = async (eventType: string, data: any) => {
+    try {
+      await supabase.functions.invoke('fraud-detection', {
+        body: {
+          type: 'security_log',
+          event_type: eventType,
+          user_id: user?.id,
+          data,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('Security logging error:', error);
+    }
+  };
   const fetchAttendanceData = async () => {
     if (!user || !profile) return
 

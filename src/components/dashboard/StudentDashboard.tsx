@@ -40,9 +40,9 @@ export default function StudentDashboard({ onLogout }: StudentDashboardProps) {
     fetchTodayData();
   }, []);
 
-  const handleScanSuccess = async (result: string) => {
+  const handleScanSuccess = async (result: string, location?: { lat: number, lng: number }, deviceInfo?: any) => {
     try {
-      await markAttendance(result);
+      await markAttendance(result, location, deviceInfo);
       setAttendanceStatus('success');
       setShowScanner(false);
       setTimeout(() => setAttendanceStatus('none'), 3000);
@@ -57,7 +57,8 @@ export default function StudentDashboard({ onLogout }: StudentDashboardProps) {
     }
   };
 
-  const handleScanError = () => {
+  const handleScanError = (errorMessage: string) => {
+    console.error('QR Scan Error:', errorMessage);
     setAttendanceStatus('error');
     setShowScanner(false);
     setTimeout(() => setAttendanceStatus('none'), 3000);

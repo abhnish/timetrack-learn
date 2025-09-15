@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, MapPin, Wifi, WifiOff } from 'lucide-react';
+import { X, MapPin, Camera, AlertTriangle, Shield } from 'lucide-react';
+import { Scanner } from '@yudiel/react-qr-scanner';
 
 interface QRScannerProps {
-  onScanSuccess: (result: string) => void;
-  onScanError: () => void;
+  onScanSuccess: (result: string, location?: { lat: number, lng: number }, deviceInfo?: any) => void;
+  onScanError: (error: string) => void;
   onClose: () => void;
 }
 
@@ -13,22 +14,87 @@ export default function QRScanner({ onScanSuccess, onScanError, onClose }: QRSca
   const [isScanning, setIsScanning] = useState(false);
   const [locationVerified, setLocationVerified] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number, lng: number } | null>(null);
+  const [deviceFingerprint, setDeviceFingerprint] = useState<any>(null);
+  const [scanStartTime, setScanStartTime] = useState<number | null>(null);
+
+  // Generate device fingerprint for fraud detection
+  const generateDeviceFingerprint = () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillText('Device fingerprint', 2, 2);
+    }
+    
+    const fingerprint = {
+      userAgent: navigator.userAgent,
+      screenResolution: `${screen.width}x${screen.height}`,
+      colorDepth: screen.colorDepth,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      language: navigator.language,
+      platform: navigator.platform,
+      canvasFingerprint: canvas.toDataURL(),
+      timestamp: Date.now(),
+      cookiesEnabled: navigator.cookieEnabled,
+      onlineStatus: navigator.onLine
+    };
+    
+    setDeviceFingerprint(fingerprint);
+  };
 
   useEffect(() => {
-    // Simulate GPS location verification
+    // Generate device fingerprint
+    generateDeviceFingerprint();
+    
+    // Check camera permissions
+    navigator.permissions?.query({ name: 'camera' as PermissionName })
+      .then(permission => {
+        setCameraPermission(permission.state as any);
+        permission.onchange = () => setCameraPermission(permission.state as any);
+      })
+      .catch(() => setCameraPermission('prompt'));
+
+    // Get precise location with high accuracy
     const checkLocation = () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            // Simulate location verification logic
-            const { latitude, longitude } = position.coords;
-            // In a real app, you'd verify if the user is within the allowed area
+            const { latitude, longitude, accuracy } = position.coords;
+            
+            // Verify location accuracy (within 100 meters)
+            if (accuracy > 100) {
+              setGpsError('Location accuracy is too low. Please ensure GPS is enabled.');
+              setLocationVerified(false);
+              return;
+            }
+            
+            setCurrentLocation({ lat: latitude, lng: longitude });
             setLocationVerified(true);
             setGpsError(null);
           },
           (error) => {
-            setGpsError('Location access denied. Please enable GPS and allow location access.');
+            let errorMessage = 'Location access denied.';
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage = 'Location access denied. Please enable location permissions.';
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessage = 'Location unavailable. Please check your GPS settings.';
+                break;
+              case error.TIMEOUT:
+                errorMessage = 'Location request timed out. Please try again.';
+                break;
+            }
+            setGpsError(errorMessage);
             setLocationVerified(false);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
           }
         );
       } else {
@@ -41,18 +107,47 @@ export default function QRScanner({ onScanSuccess, onScanError, onClose }: QRSca
 
   const handleStartScan = () => {
     if (!locationVerified) {
-      onScanError();
+      onScanError('Location verification required before scanning.');
+      return;
+    }
+    
+    if (cameraPermission === 'denied') {
+      onScanError('Camera permission denied. Please enable camera access.');
       return;
     }
     
     setIsScanning(true);
+    setScanStartTime(Date.now());
+  };
+
+  const handleQRScan = (detectedCodes: any[]) => {
+    if (!detectedCodes || detectedCodes.length === 0) return;
     
-    // Simulate QR code scanning process
-    setTimeout(() => {
-      // Simulate successful scan
-      const mockQRData = 'CLASS_CS101_2024_SESSION_' + Date.now();
-      onScanSuccess(mockQRData);
-    }, 3000);
+    const result = detectedCodes[0].rawValue;
+    
+    if (!currentLocation || !deviceFingerprint) {
+      onScanError('Security verification failed. Please try again.');
+      return;
+    }
+
+    // Add scan timing for fraud detection
+    const scanDuration = scanStartTime ? Date.now() - scanStartTime : 0;
+    
+    const securityData = {
+      ...deviceFingerprint,
+      location: currentLocation,
+      scanDuration,
+      timestamp: Date.now()
+    };
+
+    setIsScanning(false);
+    onScanSuccess(result, currentLocation, securityData);
+  };
+
+  const handleScanError = (error: any) => {
+    console.error('QR Scan Error:', error);
+    setIsScanning(false);
+    onScanError('Failed to scan QR code. Please ensure the code is clear and try again.');
   };
 
   return (
@@ -91,47 +186,99 @@ export default function QRScanner({ onScanSuccess, onScanError, onClose }: QRSca
 
           {/* Camera Preview Area */}
           <div className="relative bg-muted rounded-lg mb-6 overflow-hidden">
-            <div className="aspect-square flex items-center justify-center">
+            <div className="aspect-square">
               {isScanning ? (
-                <div className="text-center">
-                  <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                  <p className="text-foreground font-medium">Scanning QR Code...</p>
-                  <p className="text-sm text-muted-foreground">Hold steady and point at the QR code</p>
+                <div className="relative w-full h-full">
+                  <Scanner
+                    onScan={handleQRScan}
+                    onError={handleScanError}
+                    constraints={{
+                      facingMode: 'environment',
+                      aspectRatio: 1
+                    }}
+                    styles={{
+                      container: {
+                        width: '100%',
+                        height: '100%'
+                      },
+                      video: {
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }
+                    }}
+                  />
+                  
+                  {/* Scanning Overlay */}
+                  <div className="absolute inset-4 border-2 border-primary rounded-lg pointer-events-none">
+                    <div className="absolute top-0 left-0 w-6 h-6 border-l-4 border-t-4 border-primary animate-pulse" />
+                    <div className="absolute top-0 right-0 w-6 h-6 border-r-4 border-t-4 border-primary animate-pulse" />
+                    <div className="absolute bottom-0 left-0 w-6 h-6 border-l-4 border-b-4 border-primary animate-pulse" />
+                    <div className="absolute bottom-0 right-0 w-6 h-6 border-r-4 border-b-4 border-primary animate-pulse" />
+                  </div>
+                  
+                  {/* Instructions */}
+                  <div className="absolute bottom-4 left-4 right-4 bg-black/60 text-white p-2 rounded text-sm text-center">
+                    Point camera at QR code
+                  </div>
                 </div>
               ) : (
-                <div className="text-center p-8">
-                  <div className="w-24 h-24 border-4 border-dashed border-muted-foreground rounded-lg mx-auto mb-4 flex items-center justify-center">
-                    <Wifi className="w-8 h-8 text-muted-foreground" />
+                <div className="flex items-center justify-center h-full text-center p-8">
+                  <div>
+                    <div className="w-24 h-24 border-4 border-dashed border-muted-foreground rounded-lg mx-auto mb-4 flex items-center justify-center">
+                      <Camera className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-foreground font-medium">Camera Ready</p>
+                    <p className="text-sm text-muted-foreground">Tap scan to start camera</p>
+                    {cameraPermission === 'denied' && (
+                      <p className="text-xs text-danger mt-2">Camera permission required</p>
+                    )}
                   </div>
-                  <p className="text-foreground font-medium">Ready to Scan</p>
-                  <p className="text-sm text-muted-foreground">Tap the button below to start</p>
                 </div>
               )}
             </div>
-            
-            {/* Scanning Overlay */}
-            {isScanning && (
-              <div className="absolute inset-4 border-2 border-primary rounded-lg">
-                <div className="absolute top-0 left-0 w-6 h-6 border-l-4 border-t-4 border-primary" />
-                <div className="absolute top-0 right-0 w-6 h-6 border-r-4 border-t-4 border-primary" />
-                <div className="absolute bottom-0 left-0 w-6 h-6 border-l-4 border-b-4 border-primary" />
-                <div className="absolute bottom-0 right-0 w-6 h-6 border-r-4 border-b-4 border-primary" />
+          </div>
+
+          {/* Security Status */}
+          <div className="bg-background border rounded-lg p-3 mb-4">
+            <div className="flex items-center space-x-2 mb-2">
+              <Shield className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">Security Status</span>
+            </div>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="flex justify-between">
+                <span>Location:</span>
+                <span className={locationVerified ? 'text-success' : 'text-danger'}>
+                  {locationVerified ? 'Verified' : 'Pending'}
+                </span>
               </div>
-            )}
+              <div className="flex justify-between">
+                <span>Camera:</span>
+                <span className={cameraPermission === 'granted' ? 'text-success' : 'text-warning'}>
+                  {cameraPermission === 'granted' ? 'Ready' : 'Permission needed'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Device:</span>
+                <span className={deviceFingerprint ? 'text-success' : 'text-warning'}>
+                  {deviceFingerprint ? 'Verified' : 'Checking'}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Action Buttons */}
           <div className="space-y-3">
             <Button
-              onClick={handleStartScan}
-              disabled={!locationVerified || isScanning}
+              onClick={isScanning ? () => setIsScanning(false) : handleStartScan}
+              disabled={!locationVerified && !isScanning}
               className={`w-full ${
-                locationVerified && !isScanning 
+                (locationVerified || isScanning)
                   ? 'bg-gradient-primary hover:opacity-90' 
                   : 'opacity-50 cursor-not-allowed'
               }`}
             >
-              {isScanning ? 'Scanning...' : 'Start Scanning'}
+              {isScanning ? 'Stop Scanning' : 'Start Camera Scan'}
             </Button>
             
             <Button
@@ -146,7 +293,7 @@ export default function QRScanner({ onScanSuccess, onScanError, onClose }: QRSca
 
           <div className="mt-4 text-center">
             <p className="text-xs text-muted-foreground">
-              Make sure you're in the classroom and the QR code is clearly visible
+              Ensure you're in the classroom. Location and device verification required for security.
             </p>
           </div>
         </div>
