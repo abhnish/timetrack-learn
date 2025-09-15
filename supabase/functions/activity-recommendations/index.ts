@@ -30,13 +30,22 @@ serve(async (req) => {
     }
 
     // Get user profile
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+      return new Response(JSON.stringify({ error: 'Error fetching profile: ' + profileError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     if (!profile) {
+      console.error('Profile not found for user:', user.id);
       return new Response(JSON.stringify({ error: 'Profile not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -44,22 +53,34 @@ serve(async (req) => {
     }
 
     // Get user's activity history
-    const { data: activityHistory } = await supabase
+    const { data: activityHistory, error: historyError } = await supabase
       .from('user_activity_history')
       .select('activity_id, completion_status, feedback_rating')
       .eq('user_id', user.id);
 
+    if (historyError) {
+      console.error('Error fetching activity history:', historyError);
+    }
+
     // Get user's attendance stats
-    const { data: attendanceRecords } = await supabase
+    const { data: attendanceRecords, error: attendanceError } = await supabase
       .from('attendance')
       .select('status')
       .eq('student_id', user.id);
 
+    if (attendanceError) {
+      console.error('Error fetching attendance records:', attendanceError);
+    }
+
     // Get all available activities
-    const { data: allActivities } = await supabase
+    const { data: allActivities, error: activitiesError } = await supabase
       .from('activities')
       .select('*')
       .eq('is_active', true);
+
+    if (activitiesError) {
+      console.error('Error fetching activities:', activitiesError);
+    }
 
     // Calculate recommendation scores using simple ML-like logic
     const recommendations = generateRecommendations(
