@@ -56,7 +56,5 @@ A smart, unified platform designed to automate attendance, optimize free periods
 ## ⚡️ Installation & Setup
 
 ### 1️⃣ Clone the Repository
-```bash
-git clone https://github.com/your-repo/smart-attendance-app.git
-cd smart-attendance-app
+
 
