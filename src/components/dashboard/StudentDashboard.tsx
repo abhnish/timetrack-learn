@@ -10,18 +10,21 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Settings
 } from 'lucide-react';
 import QRScanner from '@/components/attendance/QRScanner';
 import { useAttendance } from '@/hooks/useAttendance';
 import { useActivities } from '@/hooks/useActivities';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 interface StudentDashboardProps {
   onLogout: () => void;
 }
 
 export default function StudentDashboard({ onLogout }: StudentDashboardProps) {
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const { stats, markAttendance, getTodaySchedule } = useAttendance();
   const { getRecommendedActivities } = useActivities();
@@ -83,9 +86,19 @@ export default function StudentDashboard({ onLogout }: StudentDashboardProps) {
             <h1 className="text-2xl font-bold">Student Dashboard</h1>
             <p className="opacity-90">Welcome back, {profile?.full_name}</p>
           </div>
-          <Button variant="outline" onClick={onLogout} className="text-white border-white hover:bg-white hover:text-primary">
-            Logout
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/settings')} 
+              className="text-white border-white hover:bg-white hover:text-primary"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+            <Button variant="outline" onClick={onLogout} className="text-white border-white hover:bg-white hover:text-primary">
+              Logout
+            </Button>
+          </div>
         </div>
       </div>
 

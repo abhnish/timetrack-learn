@@ -16,12 +16,15 @@ import {
 import QRGenerator from '@/components/attendance/QRGenerator';
 import SessionManager from '@/components/sessions/SessionManager';
 import ActivityManager from '@/components/activities/ActivityManager';
+import { useNavigate } from 'react-router-dom';
 
 interface FacultyDashboardProps {
   onLogout: () => void;
 }
 
 export default function FacultyDashboard({ onLogout }: FacultyDashboardProps) {
+  const navigate = useNavigate();
+  
   return (
     <div className="min-h-screen bg-gradient-card">
       {/* Header */}
@@ -31,9 +34,19 @@ export default function FacultyDashboard({ onLogout }: FacultyDashboardProps) {
             <h1 className="text-2xl font-bold">Faculty Dashboard</h1>
             <p className="opacity-90">Manage your classes and students</p>
           </div>
-          <Button variant="outline" onClick={onLogout} className="text-white border-white hover:bg-white hover:text-success">
-            Logout
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/settings')} 
+              className="text-white border-white hover:bg-white hover:text-success"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+            <Button variant="outline" onClick={onLogout} className="text-white border-white hover:bg-white hover:text-success">
+              Logout
+            </Button>
+          </div>
         </div>
       </div>
 

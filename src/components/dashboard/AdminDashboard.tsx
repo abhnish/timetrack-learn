@@ -18,12 +18,15 @@ import {
 import RealTimeAnalytics from '@/components/analytics/RealTimeAnalytics';
 import SessionManager from '@/components/sessions/SessionManager';
 import ActivityManager from '@/components/activities/ActivityManager';
+import { useNavigate } from 'react-router-dom';
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
+  const navigate = useNavigate();
+  
   return (
     <div className="min-h-screen bg-gradient-card">
       {/* Header */}
@@ -34,7 +37,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <p className="opacity-90">System overview and analytics</p>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="outline" className="text-white border-white hover:bg-white hover:text-primary">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/settings')} 
+              className="text-white border-white hover:bg-white hover:text-primary"
+            >
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </Button>
