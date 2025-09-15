@@ -43,3 +43,6 @@ verify_jwt = true
 
 [functions.educational-news]
 verify_jwt = false
+
+[functions.career-guidance-chat]
+verify_jwt = true

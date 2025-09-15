@@ -7,6 +7,7 @@ import { RefreshCw, TrendingUp, Award, Target } from 'lucide-react';
 import { useRecommendations, useEducationalNews } from '@/hooks/useRecommendations';
 import RecommendationCard from './RecommendationCard';
 import NewsCard from './NewsCard';
+import { CareerChatbot } from './CareerChatbot';
 import { useToast } from '@/hooks/use-toast';
 
 const RecommendationDashboard: React.FC = () => {
@@ -185,6 +186,58 @@ const RecommendationDashboard: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* AI Career Guidance Chatbot */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          <CareerChatbot />
+        </div>
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    📰 Educational News & Government Schemes
+                    <Badge variant="outline" className="text-green-700 border-green-200">
+                      Live Updates
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Latest educational initiatives, scholarships, and government announcements
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {newsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="space-y-3">
+                      <Skeleton className="h-48 w-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : news.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {news.map((newsItem) => (
+                    <NewsCard
+                      key={newsItem.id}
+                      news={newsItem}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    No educational news available at the moment.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };
