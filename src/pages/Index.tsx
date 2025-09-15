@@ -9,11 +9,13 @@ import { FullPageLoader } from '@/components/ui/loading-spinner';
 import { Button } from '@/components/ui/button';
 import { HelpCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import Landing from './Landing';
 
 const Index = () => {
   const { isAuthenticated, userRole, loading, signOut } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
 
   // Check if user needs onboarding (simplified - in real app, check localStorage or user preferences)
   useEffect(() => {
@@ -37,7 +39,10 @@ const Index = () => {
   }
 
   if (!isAuthenticated) {
-    return <AuthForm />;
+    if (showAuth) {
+      return <AuthForm />;
+    }
+    return <Landing onGetStarted={() => setShowAuth(true)} />;
   }
 
   // Show onboarding if needed
