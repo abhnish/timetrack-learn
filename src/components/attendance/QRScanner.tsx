@@ -105,19 +105,24 @@ export default function QRScanner({ onScanSuccess, onScanError, onClose }: QRSca
     checkLocation();
   }, []);
 
-  const handleStartScan = () => {
-    if (!locationVerified) {
-      onScanError('Location verification required before scanning.');
-      return;
+  const handleStartScan = async () => {
+    try {
+      // Request camera permission explicitly
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      
+      // Stop the stream immediately as Scanner will handle it
+      stream.getTracks().forEach(track => track.stop());
+      
+      setCameraPermission('granted');
+      setIsScanning(true);
+      setScanStartTime(Date.now());
+    } catch (error) {
+      console.error('Camera access error:', error);
+      setCameraPermission('denied');
+      onScanError('Camera access denied. Please allow camera permissions and try again.');
     }
-    
-    if (cameraPermission === 'denied') {
-      onScanError('Camera permission denied. Please enable camera access.');
-      return;
-    }
-    
-    setIsScanning(true);
-    setScanStartTime(Date.now());
   };
 
   const handleQRScan = (detectedCodes: any[]) => {
@@ -192,6 +197,8 @@ export default function QRScanner({ onScanSuccess, onScanError, onClose }: QRSca
                   <Scanner
                     onScan={handleQRScan}
                     onError={handleScanError}
+                    allowMultiple={false}
+                    scanDelay={1000}
                     constraints={{
                       facingMode: 'environment',
                       aspectRatio: 1
@@ -272,11 +279,7 @@ export default function QRScanner({ onScanSuccess, onScanError, onClose }: QRSca
             <Button
               onClick={isScanning ? () => setIsScanning(false) : handleStartScan}
               disabled={!locationVerified && !isScanning}
-              className={`w-full ${
-                (locationVerified || isScanning)
-                  ? 'bg-gradient-primary hover:opacity-90' 
-                  : 'opacity-50 cursor-not-allowed'
-              }`}
+              className="w-full bg-gradient-primary hover:opacity-90"
             >
               {isScanning ? 'Stop Scanning' : 'Start Camera Scan'}
             </Button>
