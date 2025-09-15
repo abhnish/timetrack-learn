@@ -52,12 +52,6 @@ const Landing = ({ onGetStarted }: LandingProps) => {
     }
   ]
 
-  const stats = [
-    { label: "Active Users", value: "10K+" },
-    { label: "Classes Tracked", value: "500+" },
-    { label: "Attendance Records", value: "100K+" },
-    { label: "Institutions", value: "50+" }
-  ]
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -89,33 +83,43 @@ const Landing = ({ onGetStarted }: LandingProps) => {
             Streamline Your Attendance Tracking
           </h1>
           
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Revolutionary QR-based attendance system with real-time analytics, 
-            location verification, and comprehensive management tools for educational institutions.
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
+            A modern, secure attendance management system designed for educational institutions. 
+            Features QR-based tracking, real-time analytics, and comprehensive management tools 
+            to streamline your attendance processes.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <Button 
               size="lg" 
               onClick={onGetStarted}
-              className="bg-gradient-primary hover:opacity-90 text-lg px-8 py-6"
+              className="bg-gradient-primary hover:opacity-90 text-lg px-8 py-6 shadow-elegant"
             >
               Start Free Trial
               <ChevronRight className="w-5 h-5 ml-2" />
             </Button>
-            <Button variant="outline" size="lg" className="text-lg px-8 py-6">
+            <Button variant="outline" size="lg" className="text-lg px-8 py-6 hover:shadow-lg transition-all duration-300">
               Watch Demo
             </Button>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-2xl mx-auto">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-3xl font-bold text-primary mb-1">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
+          {/* Key Benefits */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="text-center p-6 rounded-xl bg-background/80 backdrop-blur-sm border border-border/50 hover:shadow-hover transition-all duration-300">
+              <CheckCircle className="w-8 h-8 text-primary mx-auto mb-3" />
+              <h3 className="font-semibold mb-2">Easy Setup</h3>
+              <p className="text-sm text-muted-foreground">Get started in minutes with our intuitive interface</p>
+            </div>
+            <div className="text-center p-6 rounded-xl bg-background/80 backdrop-blur-sm border border-border/50 hover:shadow-hover transition-all duration-300">
+              <Shield className="w-8 h-8 text-primary mx-auto mb-3" />
+              <h3 className="font-semibold mb-2">Secure & Reliable</h3>
+              <p className="text-sm text-muted-foreground">Location-verified attendance with robust security</p>
+            </div>
+            <div className="text-center p-6 rounded-xl bg-background/80 backdrop-blur-sm border border-border/50 hover:shadow-hover transition-all duration-300">
+              <BarChart3 className="w-8 h-8 text-primary mx-auto mb-3" />
+              <h3 className="font-semibold mb-2">Smart Analytics</h3>
+              <p className="text-sm text-muted-foreground">Comprehensive insights and reporting tools</p>
+            </div>
           </div>
         </div>
       </section>
@@ -192,7 +196,7 @@ const Landing = ({ onGetStarted }: LandingProps) => {
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-4xl font-bold mb-4">Ready to Get Started?</h2>
           <p className="text-xl opacity-90 mb-8">
-            Join thousands of institutions already using our platform to streamline their attendance management.
+            Transform your attendance management with our comprehensive tracking system designed for modern educational institutions.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
