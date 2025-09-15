@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,9 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import QRScanner from '@/components/attendance/QRScanner';
+import { useAttendance } from '@/hooks/useAttendance';
+import { useActivities } from '@/hooks/useActivities';
+import { useAuth } from '@/hooks/useAuth';
 
 interface StudentDashboardProps {
   onLogout: () => void;
@@ -64,7 +67,7 @@ export default function StudentDashboard({ onLogout }: StudentDashboardProps) {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">Student Dashboard</h1>
-            <p className="opacity-90">Welcome back, John Doe</p>
+            <p className="opacity-90">Welcome back, {profile?.full_name}</p>
           </div>
           <Button variant="outline" onClick={onLogout} className="text-white border-white hover:bg-white hover:text-primary">
             Logout
@@ -100,7 +103,7 @@ export default function StudentDashboard({ onLogout }: StudentDashboardProps) {
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-foreground">Weekly Attendance</h3>
-                <p className="text-2xl font-bold text-success">{mockData.weeklyAttendance}%</p>
+                <p className="text-2xl font-bold text-success">{stats?.attendance_percentage || 0}%</p>
               </div>
             </div>
           </Card>
@@ -146,36 +149,49 @@ export default function StudentDashboard({ onLogout }: StudentDashboardProps) {
             </div>
           </div>
           <div className="p-6 space-y-4">
-            {mockData.todayClasses.map((class_) => (
-              <div key={class_.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                <div className="flex-1">
-                  <h3 className="font-medium text-foreground">{class_.name}</h3>
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
-                    <span className="flex items-center space-x-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{class_.time}</span>
-                    </span>
-                    <span className="flex items-center space-x-1">
-                      <MapPin className="w-4 h-4" />
-                      <span>{class_.location}</span>
-                    </span>
-                  </div>
-                </div>
-                <Badge 
-                  variant={
-                    class_.status === 'attended' ? 'default' :
-                    class_.status === 'pending' ? 'secondary' : 'outline'
-                  }
-                  className={
-                    class_.status === 'attended' ? 'bg-success text-white' :
-                    class_.status === 'pending' ? 'bg-warning text-white' : ''
-                  }
-                >
-                  {class_.status === 'attended' ? 'Attended' :
-                   class_.status === 'pending' ? 'Mark Now' : 'Upcoming'}
-                </Badge>
+            {todayClasses.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No classes scheduled for today</p>
               </div>
-            ))}
+            ) : (
+              todayClasses.map((class_, index) => (
+                <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-foreground">{class_.class_name}</h3>
+                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
+                      <span className="flex items-center space-x-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{new Date(class_.start_time).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true
+                        })}</span>
+                      </span>
+                      {class_.location && (
+                        <span className="flex items-center space-x-1">
+                          <MapPin className="w-4 h-4" />
+                          <span>{class_.location}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <Badge 
+                    variant={
+                      class_.attendance_status === 'present' ? 'default' :
+                      class_.attendance_status === 'pending' ? 'secondary' : 'outline'
+                    }
+                    className={
+                      class_.attendance_status === 'present' ? 'bg-success text-white' :
+                      class_.attendance_status === 'pending' ? 'bg-warning text-white' : ''
+                    }
+                  >
+                    {class_.attendance_status === 'present' ? 'Attended' :
+                     class_.attendance_status === 'pending' ? 'Mark Now' : 'Upcoming'}
+                  </Badge>
+                </div>
+              ))
+            )}
           </div>
         </Card>
 
@@ -188,15 +204,22 @@ export default function StudentDashboard({ onLogout }: StudentDashboardProps) {
             </div>
           </div>
           <div className="p-6 space-y-4">
-            {mockData.activities.map((activity) => (
-              <div key={activity.id} className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border">
-                <div>
-                  <h3 className="font-medium text-foreground">{activity.title}</h3>
-                  <p className="text-sm text-muted-foreground">{activity.time}</p>
-                </div>
-                <Badge variant="outline">{activity.type}</Badge>
+            {recommendedActivities.length === 0 ? (
+              <div className="text-center py-8">
+                <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No activities available</p>
               </div>
-            ))}
+            ) : (
+              recommendedActivities.map((activity) => (
+                <div key={activity.id} className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border">
+                  <div>
+                    <h3 className="font-medium text-foreground">{activity.title}</h3>
+                    <p className="text-sm text-muted-foreground">{activity.description || activity.activity_type}</p>
+                  </div>
+                  <Badge variant="outline">{activity.activity_type}</Badge>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </div>
