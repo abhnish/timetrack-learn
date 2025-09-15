@@ -6,7 +6,6 @@ import {
   QrCode, 
   MapPin, 
   Calendar, 
-  BookOpen, 
   TrendingUp,
   Clock,
   CheckCircle,
@@ -15,9 +14,9 @@ import {
 } from 'lucide-react';
 import QRScanner from '@/components/attendance/QRScanner';
 import { useAttendance } from '@/hooks/useAttendance';
-import { useActivities } from '@/hooks/useActivities';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import RecommendationDashboard from '@/components/recommendations/RecommendationDashboard';
 
 interface StudentDashboardProps {
   onLogout: () => void;
@@ -27,18 +26,15 @@ export default function StudentDashboard({ onLogout }: StudentDashboardProps) {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { stats, markAttendance, getTodaySchedule } = useAttendance();
-  const { getRecommendedActivities } = useActivities();
   
   const [showScanner, setShowScanner] = useState(false);
   const [attendanceStatus, setAttendanceStatus] = useState<'none' | 'scanning' | 'success' | 'error'>('none');
   const [todayClasses, setTodayClasses] = useState<any[]>([]);
-  const [recommendedActivities, setRecommendedActivities] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchTodayData = async () => {
       const schedule = await getTodaySchedule();
       setTodayClasses(schedule);
-      setRecommendedActivities(getRecommendedActivities());
     };
     
     fetchTodayData();
@@ -222,33 +218,8 @@ export default function StudentDashboard({ onLogout }: StudentDashboardProps) {
           </div>
         </Card>
 
-        {/* Recommended Activities */}
-        <Card className="shadow-card">
-          <div className="p-6 border-b border-border">
-            <div className="flex items-center space-x-3">
-              <BookOpen className="w-6 h-6 text-primary" />
-              <h2 className="text-xl font-semibold text-foreground">Recommended Activities</h2>
-            </div>
-          </div>
-          <div className="p-6 space-y-4">
-            {recommendedActivities.length === 0 ? (
-              <div className="text-center py-8">
-                <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No activities available</p>
-              </div>
-            ) : (
-              recommendedActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border">
-                  <div>
-                    <h3 className="font-medium text-foreground">{activity.title}</h3>
-                    <p className="text-sm text-muted-foreground">{activity.description || activity.activity_type}</p>
-                  </div>
-                  <Badge variant="outline">{activity.activity_type}</Badge>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
+        {/* AI Recommendations & Educational News */}
+        <RecommendationDashboard />
       </div>
     </div>
   );

@@ -121,6 +121,45 @@ export type Database = {
           },
         ]
       }
+      educational_news: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_featured: boolean | null
+          link: string | null
+          published_at: string | null
+          source: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          link?: string | null
+          published_at?: string | null
+          source?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          link?: string | null
+          published_at?: string | null
+          source?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -197,6 +236,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_activity_history: {
+        Row: {
+          activity_id: string
+          completion_status: string | null
+          created_at: string
+          feedback_rating: number | null
+          id: string
+          participated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          completion_status?: string | null
+          created_at?: string
+          feedback_rating?: number | null
+          id?: string
+          participated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          completion_status?: string | null
+          created_at?: string
+          feedback_rating?: number | null
+          id?: string
+          participated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          notification_frequency: string | null
+          preferred_activity_types: string[] | null
+          recommendation_enabled: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notification_frequency?: string | null
+          preferred_activity_types?: string[] | null
+          recommendation_enabled?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notification_frequency?: string | null
+          preferred_activity_types?: string[] | null
+          recommendation_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
