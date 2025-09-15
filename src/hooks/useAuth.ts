@@ -1,32 +1,54 @@
 import { useState, useEffect } from 'react'
-import { supabase, UserProfile, UserRole } from '@/lib/supabase'
-import { User } from '@supabase/supabase-js'
+import { supabase } from '@/integrations/supabase/client'
+import { User, Session } from '@supabase/supabase-js'
 import { useToast } from '@/hooks/use-toast'
+
+export type UserRole = 'student' | 'faculty' | 'admin'
+
+export interface UserProfile {
+  id: string
+  email: string
+  role: UserRole
+  full_name: string
+  student_id?: string
+  department?: string
+  created_at: string
+  updated_at: string
+}
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
   useEffect(() => {
-    // Get initial session
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        
+        if (session?.user) {
+          // Defer profile fetching to avoid deadlock
+          setTimeout(() => {
+            fetchProfile(session.user.id)
+          }, 0)
+        } else {
+          setProfile(null)
+          setLoading(false)
+        }
+      }
+    )
+
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchProfile(session.user.id)
       } else {
-        setLoading(false)
-      }
-    })
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        await fetchProfile(session.user.id)
-      } else {
-        setProfile(null)
         setLoading(false)
       }
     })
@@ -43,7 +65,7 @@ export const useAuth = () => {
         .single()
 
       if (error) throw error
-      setProfile(data)
+      setProfile(data as UserProfile)
     } catch (error) {
       console.error('Error fetching profile:', error)
       toast({
@@ -80,9 +102,14 @@ export const useAuth = () => {
 
   const signUp = async (email: string, password: string, role: UserRole, fullName: string, additionalData?: any) => {
     try {
+      const redirectUrl = `${window.location.origin}/`
+      
       const { data, error } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
       })
       if (error) throw error
 

@@ -5,10 +5,8 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { UserRole } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth, UserRole } from '@/hooks/useAuth'
 import { Loader2, GraduationCap } from 'lucide-react'
-import { SupabaseStatus } from '@/components/debug/SupabaseStatus'
 
 export default function AuthForm() {
   const { signIn, signUp, loading } = useAuth()
@@ -67,7 +65,6 @@ export default function AuthForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20 p-4">
       <div className="w-full max-w-md space-y-4">
-        <SupabaseStatus />
         
         <Card>
           <CardHeader className="text-center">
