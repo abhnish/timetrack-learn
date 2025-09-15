@@ -45,12 +45,9 @@ serve(async (req) => {
     }
 
     if (!profile) {
-      console.error('Profile not found for user:', user.id);
-      return new Response(JSON.stringify({ error: 'Profile not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      console.warn('Profile not found for user:', user.id, '- using default profile for recommendations');
     }
+    const effectiveProfile = profile ?? { role: 'student', department: '' };
 
     // Get user's activity history
     const { data: activityHistory, error: historyError } = await supabase
@@ -84,7 +81,7 @@ serve(async (req) => {
 
     // Calculate recommendation scores using simple ML-like logic
     const recommendations = generateRecommendations(
-      profile,
+      effectiveProfile,
       activityHistory || [],
       attendanceRecords || [],
       allActivities || []
