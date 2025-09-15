@@ -1,37 +1,40 @@
-import { useState } from 'react';
-import RoleSelector from '@/components/auth/RoleSelector';
+import { useAuth } from '@/hooks/useAuth';
+import AuthForm from '@/components/auth/AuthForm';
 import StudentDashboard from '@/components/dashboard/StudentDashboard';
 import FacultyDashboard from '@/components/dashboard/FacultyDashboard';
 import AdminDashboard from '@/components/dashboard/AdminDashboard';
-
-type UserRole = 'student' | 'faculty' | 'admin' | null;
+import { Loader2 } from 'lucide-react';
 
 const Index = () => {
-  const [userRole, setUserRole] = useState<UserRole>(null);
+  const { isAuthenticated, userRole, loading, signOut } = useAuth();
 
-  const handleRoleSelect = (role: UserRole) => {
-    setUserRole(role);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
-  const handleLogout = () => {
-    setUserRole(null);
-  };
+  if (!isAuthenticated) {
+    return <AuthForm />;
+  }
 
   // Role-based dashboard rendering
   if (userRole === 'student') {
-    return <StudentDashboard onLogout={handleLogout} />;
+    return <StudentDashboard onLogout={signOut} />;
   }
 
   if (userRole === 'faculty') {
-    return <FacultyDashboard onLogout={handleLogout} />;
+    return <FacultyDashboard onLogout={signOut} />;
   }
 
   if (userRole === 'admin') {
-    return <AdminDashboard onLogout={handleLogout} />;
+    return <AdminDashboard onLogout={signOut} />;
   }
 
-  // Default: Show role selector
-  return <RoleSelector onRoleSelect={handleRoleSelect} />;
+  // Fallback
+  return <AuthForm />;
 };
 
 export default Index;
